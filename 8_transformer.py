@@ -60,6 +60,8 @@ Decoder :
 
 # 序列构造
 
+batch_size = 2
+
 # 单词表大小
 max_num_src_words = max_num_tgt_words = 8
 
@@ -121,3 +123,40 @@ src_pe_embedding = pe_embedding(src_pos)
 tgt_pe_embedding = pe_embedding(tgt_pos)
 print(src_pe_embedding.shape)
 print(tgt_pe_embedding.shape)
+
+# attention
+# attention(Q, K, V) = softmax(Q * K^T / sqrt(d_k)) * V
+# 除以 sqrt(d_k) 主要是放大梯度，利于更新
+
+alpha1 = 0.1
+alpha2 = 10
+
+score = torch.randn(5)
+
+def softmax_func(score):
+    return F.softmax(score, dim=-1)
+
+jaco_mat1 = torch.autograd.functional.jacobian(softmax_func, score * alpha1)
+jaco_mat2 = torch.autograd.functional.jacobian(softmax_func, score * alpha2)
+print(jaco_mat1) # 更大的梯度
+print(jaco_mat2)
+
+# 构建 encoder 的 self-attention-mask
+# mask 的shape [batch_size, max_src_seq_len, max_src_seq_len]  值为1 或 -inf
+# 生成有效位置
+valid_encoder_pos = torch.unsqueeze(torch.cat([torch.unsqueeze(F.pad(torch.ones(L), (0, max(src_len) - L)), 0) for L in src_len]), 2)
+print(valid_encoder_pos)
+# 矩阵乘法
+valid_encoder_pos_matrix = torch.bmm(valid_encoder_pos, valid_encoder_pos.transpose(1,2))
+print(valid_encoder_pos_matrix)
+print(valid_encoder_pos_matrix.shape)
+
+invalid_encoder_pos_matrix = 1 - valid_encoder_pos
+mask_encoder_self_attention = invalid_encoder_pos_matrix.to(torch.bool)
+
+score = torch.randn(batch_size, max(src_len), max(src_len))
+masked_score = score.masked_fill(mask_encoder_self_attention, -1e9)
+prob = F.softmax(masked_score, -1)
+print(masked_score)
+print(prob)
+
