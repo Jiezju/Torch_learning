@@ -51,10 +51,10 @@ Decoder :
 '''
 
 # torch api
-# transformer_model = nn.Transformer(nhead=16, num_encoder_layers=12)
-# src = torch.rand((10, 32, 512))
-# tgt = torch.rand((20, 32, 512))
-# out = transformer_model(src, tgt)
+transformer_model = nn.Transformer(nhead=16, num_encoder_layers=12)
+src = torch.rand((10, 32, 512))
+tgt = torch.rand((20, 32, 512))
+out = transformer_model(src, tgt)
 
 # manual (序列翻译)
 
@@ -144,7 +144,8 @@ print(jaco_mat2)
 # 构建 encoder 的 self-attention-mask
 # mask 的shape [batch_size, max_src_seq_len, max_src_seq_len]  值为1 或 -inf
 # 生成有效位置
-valid_encoder_pos = torch.unsqueeze(torch.cat([torch.unsqueeze(F.pad(torch.ones(L), (0, max(src_len) - L)), 0) for L in src_len]), 2)
+valid_encoder_pos = torch.unsqueeze(torch.cat([torch.unsqueeze(F.pad(torch.ones(L), (0, max(src_len) - L)), 0)
+                                               for L in src_len]), 2)
 print(valid_encoder_pos)
 # 矩阵乘法
 valid_encoder_pos_matrix = torch.bmm(valid_encoder_pos, valid_encoder_pos.transpose(1,2))
@@ -160,3 +161,35 @@ prob = F.softmax(masked_score, -1)
 print(masked_score)
 print(prob)
 
+# intra-attetion mask
+valid_encoder_pos = torch.unsqueeze(torch.cat([torch.unsqueeze(F.pad(torch.ones(L), (0, max(src_len) - L)), 0)
+                                               for L in src_len]), 2)
+
+valid_decoder_pos = torch.unsqueeze(torch.cat([torch.unsqueeze(F.pad(torch.ones(L), (0, max(src_len) - L)), 0)
+                                               for L in tgt_len]), 2)
+
+valid_cross_pos = torch.bmm(valid_decoder_pos, valid_encoder_pos.transpose(1,2))
+print(valid_encoder_pos, valid_cross_pos)
+
+#  构建 decoder self-attetion 的 mask
+# 构建下三角形
+valid_decoder_tri_mat = torch.stack([F.pad(torch.tril(torch.ones((L,L))), (0,max(tgt_len-L),0,max(tgt_len-L))) for L in tgt_len], dim=0)
+print(valid_decoder_tri_mat)
+print(valid_decoder_tri_mat.shape)
+
+invalid_decoder_tri_mat = 1 - valid_decoder_tri_mat
+invalid_decoder_tri_mat = invalid_decoder_tri_mat.to(torch.bool)
+
+score = torch.randn(batch_size, max(tgt_len), max(tgt_len))
+masked_score = score.masked_fill(invalid_decoder_tri_mat, -1e9)
+prob = F.softmax(masked_score, -1)
+print(prob)
+
+#  构建 self-attention
+def scaled_dot_product_attention(Q, K, V, attn_mask):
+    # shape of Q, K, V [bs* num_head, seq_len, model_dim / num_head]
+    score = torch.bmm(Q, K.transpose(-2,-1)) / torch.sqrt(model_dim)
+    masked_score = score.masked_fill(attn_mask, -1e9)
+    prob = F.softmax(masked_score, -1)
+    context = torch.bmm(prob, V)
+    return context
