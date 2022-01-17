@@ -47,7 +47,12 @@ Decoder :
      Q   K   V             Q/K/V - ecoder output 
      
      
-    
+transformer 的三类应用
+
+- 1. 机器翻译 -- encoder + decoder
+- 2. 文本分类、图片分类 ViT -- ecoder
+- 3. 生成类模型 -- decoder
+
 '''
 
 # torch api
