@@ -1,3 +1,4 @@
+import torch
 import torch as t
 from torch import nn
 import torch.nn.functional as F
@@ -62,3 +63,14 @@ print(out_transpose.reshape(4,4))
 
 torch_output = F.conv_transpose2d(out.reshape(2,2).unsqueeze(0).unsqueeze(0), kernel.unsqueeze(0).unsqueeze(0))
 print(torch_output)
+
+# conv transpose 的另一种理解
+x = t.tensor([[4, 3, 4], [2, 4, 3], [2, 3, 4]]).reshape(1, 1, 3, 3).float()
+kernel = t.ones(size=(1, 1, 3, 3)).float()
+output = F.conv_transpose2d(x, kernel)
+print(output)
+
+# 等价于 先插入 0
+x = t.tensor([[4, 0, 3, 0, 4], [0, 0, 0, 0, 0], [2, 0, 4, 0, 3], [0, 0, 0, 0, 0], [2, 0, 3, 0,  4]]).reshape(1, 1, 5, 5).float()
+output = F.conv2d(x, kernel)
+print(output)
