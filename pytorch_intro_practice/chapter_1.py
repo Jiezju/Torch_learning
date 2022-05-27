@@ -34,3 +34,9 @@ print(y)
 y.backward(torch.randn(4))
 print(x.grad)
 
+# 矩阵滑窗展开
+mat_x = torch.arange(0, 16).reshape(4, 4)
+window = mat_x.unfold(0, 3, 1).unfold(1, 3, 1)
+print(mat_x)
+print(window.shape)
+print(window.reshape(window.shape[0], window.shape[1], -1))
