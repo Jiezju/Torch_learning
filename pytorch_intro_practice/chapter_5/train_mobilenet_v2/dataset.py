@@ -46,6 +46,8 @@ class Lighting(object):
         return self.__class__.__name__ + '()'
 
 # 去掉pytorch 默认的 数据提取（会有冗余的分类和检查），自定义更加高效
+
+
 def fast_collate(batch):
     imgs = [img[0] for img in batch]
     targets = torch.tensor([target[1] for target in batch], dtype=torch.int64)
@@ -105,10 +107,10 @@ class DataPrefetcher():
         self.stream = torch.cuda.Stream()
         self.mean = torch.tensor(
             [0.485 * 255, 0.456 * 255, 0.406 * 255]
-        ).cuda().view(1,3,1,1)
+        ).cuda().view(1, 3, 1, 1)
         self.std = torch.tensor(
             [0.229 * 255, 0.224 * 255, 0.225 * 255]
-        ).cuda().view(1,3,1,1)
+        ).cuda().view(1, 3, 1, 1)
         self.preload()
 
     def preload(self):
